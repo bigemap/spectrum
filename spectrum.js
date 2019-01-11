@@ -102,8 +102,8 @@
                         "<div class='sp-fill'></div>",
                         "<div class='sp-top-inner'>",
                             "<div class='sp-color'>",
-                                "<div class='sp-sat'>",
-                                    "<div class='sp-val'>",
+                                "<div class='sp-sat-l'>",
+                                    "<div class='sp-lgt'>",
                                         "<div class='sp-dragger'></div>",
                                     "</div>",
                                 "</div>",
@@ -118,7 +118,7 @@
                         "<div class='sp-alpha'><div class='sp-alpha-inner'><div class='sp-alpha-handle'></div></div></div>",
                     "</div>",
                     "<div class='sp-input-container sp-cf'>",
-                        "<input class='sp-input' type='text' spellcheck='false'  />",
+                        "<input class='sp-input short' type='text' spellcheck='false'  />",
                     "</div>",
                     "<div class='sp-initial sp-thumb sp-cf'></div>",
                     "<div class='sp-button-container sp-cf'>",
@@ -196,7 +196,7 @@
             slideHelperHeight = 0,
             currentHue = 0,
             currentSaturation = 0,
-            currentValue = 0,
+            currentLightness = 0,
             currentAlpha = 1,
             palette = [],
             paletteArray = [],
@@ -411,7 +411,7 @@
                 }
                 else if (!shiftMovementDirection) {
                     var oldDragX = currentSaturation * dragWidth;
-                    var oldDragY = dragHeight - (currentValue * dragHeight);
+                    var oldDragY = dragHeight - (currentLightness * dragHeight);
                     var furtherFromX = Math.abs(dragX - oldDragX) > Math.abs(dragY - oldDragY);
 
                     shiftMovementDirection = furtherFromX ? "x" : "y";
@@ -424,7 +424,7 @@
                     currentSaturation = parseFloat(dragX / dragWidth);
                 }
                 if (setValue) {
-                    currentValue = parseFloat((dragHeight - dragY) / dragHeight);
+                    currentLightness = parseFloat((dragHeight - dragY) / dragHeight);
                 }
 
                 isEmpty = false;
@@ -576,6 +576,7 @@
         function dragStop() {
             isDragging = false;
             container.removeClass(draggingClass);
+            updateOriginalInput(true);
             boundElement.trigger('dragstop.spectrum', [ get() ]);
         }
 
@@ -628,7 +629,7 @@
             visible = true;
 
             $(doc).on("keydown.spectrum", onkeydown);
-            $(doc).on("click.spectrum", clickout);
+            //$(doc).on("click.spectrum", clickout);
             $(window).on("resize.spectrum", resize);
             replacer.addClass("sp-active");
             container.removeClass("sp-hidden");
@@ -673,7 +674,7 @@
             visible = false;
 
             $(doc).off("keydown.spectrum", onkeydown);
-            $(doc).off("click.spectrum", clickout);
+            //$(doc).off("click.spectrum", clickout);
             $(window).off("resize.spectrum", resize);
 
             replacer.removeClass("sp-active");
@@ -696,18 +697,18 @@
                 return;
             }
 
-            var newColor, newHsv;
+            var newColor, newHsl;
             if (!color && allowEmpty) {
                 isEmpty = true;
             } else {
                 isEmpty = false;
                 newColor = tinycolor(color);
-                newHsv = newColor.toHsv();
+                newHsl = newColor.toHsl();
 
-                currentHue = (newHsv.h % 360) / 360;
-                currentSaturation = newHsv.s;
-                currentValue = newHsv.v;
-                currentAlpha = newHsv.a;
+                currentHue = (newHsl.h % 360) / 360;
+                currentSaturation = newHsl.s;
+                currentLightness = newHsl.l;
+                currentAlpha = newHsl.a;
             }
             updateUI();
 
@@ -726,7 +727,7 @@
             return tinycolor.fromRatio({
                 h: currentHue,
                 s: currentSaturation,
-                v: currentValue,
+                l: currentLightness,
                 a: Math.round(currentAlpha * 1000) / 1000
             }, { format: opts.format || currentPreferredFormat });
         }
@@ -820,7 +821,7 @@
 
         function updateHelperLocations() {
             var s = currentSaturation;
-            var v = currentValue;
+            var l = currentLightness;
 
             if(allowEmpty && isEmpty) {
                 //if selected color is empty, hide the helpers
@@ -836,19 +837,26 @@
 
                 // Where to show the little circle in that displays your current selected color
                 var dragX = s * dragWidth;
-                var dragY = dragHeight - (v * dragHeight);
+                var dragY = dragHeight - (l * dragHeight);
                 dragX = Math.max(
-                    -dragHelperHeight,
-                    Math.min(dragWidth - dragHelperHeight, dragX - dragHelperHeight)
+                    -dragHelperHeight / 2,
+                    Math.min(dragWidth - dragHelperHeight / 2, dragX - dragHelperHeight / 2)
                 );
                 dragY = Math.max(
-                    -dragHelperHeight,
-                    Math.min(dragHeight - dragHelperHeight, dragY - dragHelperHeight)
+                    -dragHelperHeight / 2,
+                    Math.min(dragHeight - dragHelperHeight / 2, dragY - dragHelperHeight / 2)
                 );
                 dragHelper.css({
-                    "top": dragY + "px",
-                    "left": dragX + "px"
+                    'top': dragY + 'px',
+                    'left': dragX + 'px',
+                    'border-color': '#fff'
                 });
+
+                if (l > 0.70) {
+                    dragHelper.css({
+                        'border-color': '#000'
+                    });
+                }
 
                 var alphaX = currentAlpha * alphaWidth;
                 alphaSlideHelper.css({
